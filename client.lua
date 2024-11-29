@@ -1,4 +1,6 @@
 ElementDataDebug = {}
+
+ElementDataDebug.menus = {}
 local settings = {
     funcs = {},
     blackImgPath = "images/black.png",
@@ -7,6 +9,7 @@ local settings = {
     whiteImg = dxCreateTexture("images/white.png"),
 
     menuAlpha=0.5,
+    menuSize = {w=250, h=0},
 
 }
 
@@ -52,13 +55,15 @@ function ElementDataDebug:constructor(element, x, y)
     self.element = element
     self.pos = {x=x, y=y}
 
-    self:navigateMenu()
+    local menu = self:navigateMenu()
+    addEventHandler("onClientRender", root, self.onRender)
+    
     
 end
 function ElementDataDebug:addSubMenu (pos, dataName, dataValue)
     local menu = {}
     menu.subMenu_offset = pos.y
-    menu.window = guiCreateStaticImage(pos.x, pos.y, 250*scaledValue, 20*scaledValue, settings.blackImgPath, false)
+    menu.window = guiCreateStaticImage(pos.x, pos.y, settings.menuSize.w*scaledValue, 20*scaledValue, settings.blackImgPath, false)
     guiSetAlpha(menu.window, settings.menuAlpha)
     menu.offset_y = 0
     menu.spacing = 20 * scaledValue
@@ -76,7 +81,7 @@ function ElementDataDebug:addSubMenu (pos, dataName, dataValue)
 end
 function ElementDataDebug:addItem(menu, dataName, dataValue)
     local data = string.format("%s: %s", tostring(dataName), tostring(dataValue))
-    local row = guiCreateLabel(0, menu.offset_y, 250*scaledValue, 25*scaledValue, data, false, menu.window)
+    local row = guiCreateLabel(0, menu.offset_y, settings.menuSize.w*scaledValue, 25*scaledValue, data, false, menu.window)
     addEventHandler("onClientMouseEnter", row, self.onItemEnter)
     addEventHandler("onClientMouseLeave", row, self.onItemLeave)
     addEventHandler("onClientGUIClick", row, self.onItemClicked)
@@ -85,10 +90,10 @@ function ElementDataDebug:addItem(menu, dataName, dataValue)
     guiLabelSetVerticalAlign(row, "center")
     
     if type(dataValue) == "table" then
-        local arrow = guiCreateStaticImage(230*scaledValue, 0, 20*scaledValue, 20*scaledValue, "images/nav.png", false, row)
+        local arrow = guiCreateStaticImage((settings.menuSize.w-20)*scaledValue, 0, 20*scaledValue, 20*scaledValue, "images/nav.png", false, row)
         -- when I hover over the row it shows the sub menu
         local x, y = guiGetPosition(row, false)
-        local subMenu = self:addSubMenu({x=x+self.pos.x+250*scaledValue, y=y+self.pos.y}, tostring(dataName), dataValue)
+        local subMenu = self:addSubMenu({x=x+self.pos.x+settings.menuSize.w*scaledValue, y=y+self.pos.y}, tostring(dataName), dataValue)
         setElementData(row, "menu", subMenu)
     end
     menu.offset_y = menu.offset_y + menu.spacing 
@@ -96,21 +101,21 @@ function ElementDataDebug:addItem(menu, dataName, dataValue)
     local x, y = guiGetSize(menu.window, false)
     guiSetSize(menu.window, x, y+menu.spacing, false)
 end
-function ElementDataDebug:navigateMenu()
-    local _, desc_h = dxGetTextSize(self.description, 0, 1, 1, "default-bold")
+function ElementDataDebug:navigateMenu(pos)
+    pos = pos or {}
     
     
     
     self.menu = {}
     self.subMenus = {}
-    self.menu.window = guiCreateStaticImage(self.pos.x, self.pos.y, 250*scaledValue, 0, settings.blackImgPath, false)
-    self.menu.description = guiCreateLabel(0, 0, 250*scaledValue, 40*scaledValue, self.description, false, self.menu.window)
-    self.menu.refresh = guiCreateStaticImage(230*scaledValue, 0, 20*scaledValue, 20*scaledValue, "images/refresh.png", false, self.menu.description)
+    self.menu.window = guiCreateStaticImage(pos.x or self.pos.x, pos.y or self.pos.y, settings.menuSize.w*scaledValue, settings.menuSize.h*scaledValue, settings.blackImgPath, false)
+    self.menu.description = guiCreateLabel(0, 0, settings.menuSize.w*scaledValue, 40*scaledValue, self.description, false, self.menu.window)
+    self.menu.refresh = guiCreateStaticImage((settings.menuSize.w-20)*scaledValue, 0, 20*scaledValue, 20*scaledValue, "images/refresh.png", false, self.menu.description)
     self.menu.close = guiCreateStaticImage(0, 0, 20*scaledValue, 20*scaledValue, "images/x.png", false, self.menu.description)
     setElementData(self.menu.window, "subMenus", self.subMenus)
     setElementData(self.menu.close, "subMenus", self.subMenus)
 
-    addEventHandler("onClientMouseWheel", root, function (arg1)
+    addEventHandler("onClientMouseWheel", self.menu.window, function (arg1)
         self:onMenuScroll(arg1)
     end)
     addEventHandler("onClientGUIClick", self.menu.close, function ()
@@ -124,7 +129,7 @@ function ElementDataDebug:navigateMenu()
     guiSetAlpha(self.menu.window, settings.menuAlpha)
     
 
-    local seperator = guiCreateStaticImage(0, 40*scaledValue, 250*scaledValue, 1*scaledValue, settings.whitePath, false, self.menu.description)
+    local seperator = guiCreateStaticImage(0, 40*scaledValue, settings.menuSize.w*scaledValue, 1*scaledValue, settings.whitePath, false, self.menu.description)
     
     guiLabelSetHorizontalAlign(self.menu.description, "center")
     guiSetFont(self.menu.description, "default-bold")
@@ -139,6 +144,11 @@ function ElementDataDebug:navigateMenu()
 
     self:setChildrenOfMenuInheritAlpha(self.menu.window, false)
 
+    table.insert(ElementDataDebug.menus, self.menu)
+
+    ElementDataDebug.computeMenuCoordinates(self.menu.window)
+
+    return self.menu
 
 end
 
@@ -188,8 +198,26 @@ function ElementDataDebug:onDestroyMenu()
 end
 
 function ElementDataDebug:onRefreshMenu()
+    local x, y = guiGetPosition(self.menu.window, false)
     self:onDestroyMenu()
-    self:navigateMenu()
+    self:navigateMenu({x=x, y=y})
+end
+
+
+function ElementDataDebug:onRender()
+    for k, v in pairs(ElementDataDebug.menus) do
+        if v.window and isElement(v.window) then
+            if isMouseOnGuiElement(v.description, v.window) and getKeyState("mouse3") then
+                local sx, sy = getCursorPosition()
+                local x, y = sx*screen[1], sy*screen[2]
+                local padding_x = settings.menuSize.w*scaledValue/2
+                local padding_y = 20*scaledValue/2
+                guiSetPosition(v.window, x-padding_x, y-padding_y, false)
+    
+                ElementDataDebug.computeMenuCoordinates(v.window)
+            end
+        end
+    end
 end
 
 -- when scrolling down or up the menu should move up or down
@@ -219,11 +247,10 @@ function ElementDataDebug:onMenuScroll(upOrDown)
             if getElementData(v, "menu") then -- set the submenu-y same
                 local subMenu = getElementData(v, "menu")
                 local x, _ = guiGetPosition(subMenu, false)
-                -- x+self.pos.x+250*scaledValue, y=y+self.pos.y
-                guiSetPosition(subMenu, x, (y+offset)+self.pos.y, false)
-                for _, v in ipairs(getElementChildren(subMenu)) do
-                    self:matchHeightSubMenu(v)
-                end
+                local _, parent_y = guiGetPosition(self.menu.window, false)
+                -- x+self.pos.x+settings.menuSize.w*scaledValue, y=y+self.pos.y
+                guiSetPosition(subMenu, x, (y+offset)+parent_y, false)
+                ElementDataDebug.computeMenuCoordinates(subMenu)
             end
             offset = offset + new_row_space
         end
@@ -231,7 +258,7 @@ function ElementDataDebug:onMenuScroll(upOrDown)
     end
 end
 
-function ElementDataDebug:matchHeightSubMenu(item)
+function ElementDataDebug.matchHeightSubMenu(item)
     local menu = getElementData(item, "menu")
     if not menu then
         return
@@ -239,14 +266,22 @@ function ElementDataDebug:matchHeightSubMenu(item)
         local parent = getElementParent(item)
         local p_x, p_y = guiGetPosition(parent, false)
         local x, y = guiGetPosition(item, false)
-        guiSetPosition(menu, x+250*scaledValue+p_x, y+p_y, false)
+        guiSetPosition(menu, x+settings.menuSize.w*scaledValue+p_x, y+p_y, false)
         -- now check the item in the sub menu
         local children = getElementChildren(menu)
         for k, v in ipairs(children) do
-            self:matchHeightSubMenu(v)
+            ElementDataDebug.matchHeightSubMenu(v)
         end
     end
     
+end
+
+function ElementDataDebug.computeMenuCoordinates(menu)
+    for _, item in ipairs(getElementChildren(menu)) do
+        if getElementData(item, "menu") then
+            ElementDataDebug.matchHeightSubMenu(item)
+        end
+    end
 end
 
 
@@ -259,12 +294,12 @@ addEventHandler("onClientDoubleClick", root, function (button, absoluteX, absolu
 end)
 --local test = ElementDataDebug:create(localPlayer)
 function isMouseOnGuiElement(guiElement,guiElementParent)
-    if isCursorShowing() then
+    if isCursorShowing() and isElement(guiElement) then
         local sx,sy = guiGetScreenSize()
         local x,y = getCursorPosition()
         local wx,wy = 0,0
         x,y = x*sx, y*sy
-        if guiElementParent then
+        if guiElementParent and isElement(guiElementParent) then
             wx,wy = guiGetPosition(guiElementParent,false)
         end
         local bx,by = guiGetPosition(guiElement,false)
