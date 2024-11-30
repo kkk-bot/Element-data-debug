@@ -300,6 +300,17 @@ function ElementDataDebug:onMenuScroll(upOrDown)
         local _, y = guiGetPosition(children[1], false)
         local offset = 0
         local scroll_distance = 1
+        -- if last element position less than the menu height, return
+        local last_x, last_y = guiGetPosition(children[#children], false)
+        local last_w, last_h = guiGetSize(children[#children], false)
+        if upOrDown == -1 and last_y + last_h + last_h/2 <= screen[2] then
+            return
+        end
+        if last_y + last_h <= settings.menuSize.h * scaledValue then
+            return
+        end
+
+
         if upOrDown == 1 then -- up
             offset = offset + row_space * scroll_distance
         else
@@ -308,6 +319,7 @@ function ElementDataDebug:onMenuScroll(upOrDown)
         for k, v in ipairs(children) do
             if k == 1 then
                 if y+offset >= 5 then return end
+
             end
             local x, _ = guiGetPosition(v, false)
             guiSetPosition(v, x, y + offset, false)
