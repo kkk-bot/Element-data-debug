@@ -53,9 +53,15 @@ function ElementDataDebug:constructor(element, x, y)
     self.element = element
     self.pos = { x = x, y = y }
 
+    -- element data, previous element data
+    self.data = getAllElementData(self.element) or {}
+    self.previous_data = self.data
+
     local menu = self:createMenu()
     self:setChildrenOfMenuInheritAlpha(menu.window, false)
 
+
+    --self:refreshEvery(3000)
     --addEventHandler("onClientRender", root, self.onRender)
 end
 
@@ -79,10 +85,13 @@ function ElementDataDebug:addSubMenu(pos, dataName, dataValue)
     return menu.window
 end
 
-function ElementDataDebug:addItem(menu, dataName, dataValue)
+function ElementDataDebug:addItem(menu, dataName, dataValue, color)
+    color = color or {255, 255, 255}
     local data = string.format("%s: %s", tostring(dataName), tostring(dataValue))
     local row = guiCreateLabel(0, menu.offset_y, settings.menuSize.w * scaledValue, 25 * scaledValue, data, false,
         menu.window)
+    
+    guiLabelSetColor(row, color[1], color[2], color[3])
     addEventHandler("onClientMouseEnter", row, self.onItemEnter)
     addEventHandler("onClientMouseLeave", row, self.onItemLeave)
     addEventHandler("onClientGUIClick", row, self.onItemClicked)
@@ -153,7 +162,7 @@ function ElementDataDebug:createMenu(pos)
     
     table.insert(ElementDataDebug.menus, self.menu)
     
-    self:fillMenu(getAllElementData(self.element) or {})
+    self:fillMenu(self.data)
     
     -- Set the y-pos back as default
     guiSetPosition(self.menu.window, pos.x or self.pos.x, (pos.y or self.pos.y)+40 * scaledValue, false)
@@ -165,11 +174,31 @@ function ElementDataDebug:createMenu(pos)
 end
 
 function ElementDataDebug:fillMenu(data)
-    for k, v in pairs(data) do
-        self:addItem(self.menu, k, v)
+    self.data = data
+    for i=1, #self.data do
+        
+    end
+    
+    for k, v in pairs(self.data) do
+        if type(v) ~= "table" then
+            if v ~= self:previous_getDataValueFromKey(k) then
+                self:addItem(self.menu, k, v, { 255, 0, 0 })
+            else
+                self:addItem(self.menu, k, v)
+            end
+        else
+            self:addItem(self.menu, k, v)
+        end
     end
 end
 
+function ElementDataDebug:previous_getDataValueFromKey(key)
+    for k, v in pairs(self.previous_data) do
+        if k == key then
+            return v
+        end
+    end
+end
 function ElementDataDebug:onTitleMoved(state, menu)
     if isMouseOnGuiElement(menu.description_window) then
         ElementDataDebug.moving_element = menu
@@ -267,9 +296,19 @@ end
 
 function ElementDataDebug:onRefreshMenu()
     local x, y = guiGetPosition(self.menu.description_window, false)
+    self.data = getAllElementData(self.element) or {}
     self:onDestroyMenu()
     self:createMenu({ x = x, y = y })
     self:setChildrenOfMenuInheritAlpha(self.menu.window, false)
+
+
+    self.previous_data = self.data
+end
+
+function ElementDataDebug:refreshEvery(timeToRefresh) -- in ms
+    setTimer(function ()
+        self:onRefreshMenu()
+    end, timeToRefresh, 0)
 end
 
 function ElementDataDebug:onRender()
@@ -278,7 +317,7 @@ function ElementDataDebug:onRender()
     end
 end
 function ElementDataDebug:moveMenu()
-    if isCursorShowing() then
+    if isCursorShowing() and ElementDataDebug.moving_element.description_window and ElementDataDebug.moving_element.window and isElement(ElementDataDebug.moving_element.description_window) and isElement(ElementDataDebug.moving_element.window) then
         local sx, sy = getCursorPosition()
         local x, y = sx * screen[1], sy * screen[2]
         local padding_x = settings.menuSize.w * scaledValue / 2
@@ -318,7 +357,7 @@ function ElementDataDebug:onMenuScroll(upOrDown)
         end
         for k, v in ipairs(children) do
             if k == 1 then
-                if y+offset >= 5 then return end
+                if y+offset >= 20 then return end
 
             end
             local x, _ = guiGetPosition(v, false)
