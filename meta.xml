@@ -1,4 +1,6 @@
 <meta>
+    <info author="FHD Store @ibrahimjackson" version="1.0.0" type="script" name="element_data_debug" description="Monitor element data while professionally while you are scripting."/>
+
     <script src="util.lua" type="client"></script>
     <script src="client.lua" type="client"></script>
     <file src="images/*.png"/>
