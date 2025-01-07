@@ -1,4 +1,5 @@
 <meta>
+    <script src="util.lua" type="client"></script>
     <script src="client.lua" type="client"></script>
     <file src="images/*.png"/>
 </meta>
