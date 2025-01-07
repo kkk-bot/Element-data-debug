@@ -3,5 +3,9 @@
 
     <script src="util.lua" type="client"></script>
     <script src="client.lua" type="client"></script>
-    <file src="images/*.png"/>
+    <file src="images/black.png"/>
+    <file src="images/nav.png"/>
+    <file src="images/refresh.png"/>
+    <file src="images/white.png"/>
+    <file src="images/x.png"/>
 </meta>
