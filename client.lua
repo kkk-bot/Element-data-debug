@@ -17,6 +17,7 @@ local settings = {
 local screen = { guiGetScreenSize() }
 
 local scaledValue = screen[2] / 1080
+scaledValue = math.max(0.8, scaledValue)
 
 ElementDataDebug.__index = ElementDataDebug
 
@@ -38,7 +39,7 @@ function ElementDataDebug:setChildrenOfMenuInheritAlpha(menu, state)
 end
 
 function ElementDataDebug:constructor(element, x, y)
-    self.type = getElementType(element) or "nil"
+    self.type = tostring(getElementType(element))
     local name
     if self.type == "player" then
         name = getPlayerName(element):gsub("_", " ") or getPlayerName(element)
@@ -47,6 +48,7 @@ function ElementDataDebug:constructor(element, x, y)
     else
         name = getElementModel(element)
     end
+    name = tostring(name)
 
     self.description = string.format("%s (%s) \n%s", name, self.type, tostring(element))
 
@@ -55,6 +57,7 @@ function ElementDataDebug:constructor(element, x, y)
 
     -- element data, previous element data
     self.data = getAllElementData(self.element) or {}
+    
     self.previous_data = self.data
 
     local menu = self:createMenu()
@@ -67,12 +70,12 @@ end
 
 function ElementDataDebug:addSubMenu(pos, dataName, dataValue)
     local menu = {}
-    menu.window = guiCreateStaticImage(pos.x, pos.y, settings.menuSize.w * scaledValue, 20 * scaledValue,
+    menu.window = guiCreateStaticImage(pos.x, pos.y, settings.menuSize.w * scaledValue, 20,
         settings.blackImgPath, false)
     guiSetAlpha(menu.window, settings.menuAlpha)
     menu.offset_y     = 0
-    menu.spacing      = 20 * scaledValue
-    menu.extraSpacing = 2 * scaledValue
+    menu.spacing      = 20 
+    menu.extraSpacing = 2 
 
     for k, v in pairs(dataValue) do
         self:addItem(menu, k, v)
@@ -88,7 +91,7 @@ end
 function ElementDataDebug:addItem(menu, dataName, dataValue, color)
     color = color or {255, 255, 255}
     local data = string.format("%s: %s", tostring(dataName), tostring(dataValue))
-    local row = guiCreateLabel(0, menu.offset_y, settings.menuSize.w * scaledValue, 25 * scaledValue, data, false,
+    local row = guiCreateLabel(0, menu.offset_y, settings.menuSize.w * scaledValue, 25, data, false,
         menu.window)
     
     guiLabelSetColor(row, color[1], color[2], color[3])
@@ -100,18 +103,18 @@ function ElementDataDebug:addItem(menu, dataName, dataValue, color)
     guiLabelSetVerticalAlign(row, "center")
 
     if type(dataValue) == "table" then
-        local arrow = guiCreateStaticImage((settings.menuSize.w - 20) * scaledValue, 0, 20 * scaledValue, 20 *
-        scaledValue, "images/nav.png", false, row)
+        local arrow = guiCreateStaticImage((settings.menuSize.w - 20) * scaledValue, 0, 20, 20, "images/nav.png", false, row)
         -- when I hover over the row it shows the sub menu
         local x, y = guiGetPosition(row, false)
         local subMenu = self:addSubMenu({ x = x + self.pos.x + settings.menuSize.w * scaledValue, y = y + self.pos.y },
             tostring(dataName), dataValue)
         setElementData(row, "menu", subMenu)
     end
-    menu.offset_y = menu.offset_y + menu.spacing
+    menu.offset_y = menu.offset_y + menu.spacing 
 
     local x, y = guiGetSize(menu.window, false)
-    guiSetSize(menu.window, x, y + menu.spacing, false)
+    guiSetSize(menu.window, x, y + menu.spacing + menu.extraSpacing, false)
+    return row
 end
 
 function ElementDataDebug:createMenu(pos)
@@ -124,14 +127,14 @@ function ElementDataDebug:createMenu(pos)
     self.menu.offset_y     = 0
     self.menu.window = guiCreateStaticImage(0, 0, settings.menuSize.w * scaledValue,
         settings.menuSize.h * scaledValue, settings.blackImgPath, false)
-    self.menu.description_window = guiCreateStaticImage(0, 0, settings.menuSize.w * scaledValue, 40 * scaledValue, settings.blackImgPath, false)
-    self.menu.description = guiCreateLabel(0, 0, settings.menuSize.w * scaledValue, 40 * scaledValue, self.description,
+    self.menu.description_window = guiCreateStaticImage(0, 0, settings.menuSize.w * scaledValue, 40, settings.blackImgPath, false)
+    self.menu.description = guiCreateLabel(0, 0, settings.menuSize.w * scaledValue, 40, self.description,
         false, self.menu.description_window)
     bindKey("mouse3", "down", ElementDataDebug.onTitleMoved, self.menu)
     bindKey("mouse3", "up", ElementDataDebug.cancelTitleMoved, self.menu)
-    self.menu.refresh = guiCreateStaticImage((settings.menuSize.w - 20) * scaledValue, 0, 20 * scaledValue,
-        20 * scaledValue, "images/refresh.png", false, self.menu.description)
-    self.menu.close = guiCreateStaticImage(0, 0, 20 * scaledValue, 20 * scaledValue, "images/x.png", false,
+    self.menu.refresh = guiCreateStaticImage((settings.menuSize.w - 20) * scaledValue, 0, 20,
+        20, "images/refresh.png", false, self.menu.description)
+    self.menu.close = guiCreateStaticImage(0, 0, 20, 20, "images/x.png", false,
         self.menu.description)
     setElementData(self.menu.window, "subMenus", self.subMenus)
     setElementData(self.menu.close, "subMenus", self.subMenus)
@@ -150,14 +153,14 @@ function ElementDataDebug:createMenu(pos)
     self:setChildrenOfMenuInheritAlpha(self.menu.description_window, false)
 
 
-    local seperator = guiCreateStaticImage(0, 40 * scaledValue, settings.menuSize.w * scaledValue, 1 * scaledValue,
+    local seperator = guiCreateStaticImage(0, 40-5, settings.menuSize.w * scaledValue, 1,
         settings.whitePath, false, self.menu.description)
 
     guiLabelSetHorizontalAlign(self.menu.description, "center")
     guiSetFont(self.menu.description, "default-bold")
 
-    self.menu.spacing      = 20 * scaledValue
-    self.menu.extraSpacing = 2 * scaledValue
+    self.menu.spacing      = 20
+    self.menu.extraSpacing = 2
 
     
     table.insert(ElementDataDebug.menus, self.menu)
@@ -165,7 +168,7 @@ function ElementDataDebug:createMenu(pos)
     self:fillMenu(self.data)
     
     -- Set the y-pos back as default
-    guiSetPosition(self.menu.window, pos.x or self.pos.x, (pos.y or self.pos.y)+40 * scaledValue, false)
+    guiSetPosition(self.menu.window, pos.x or self.pos.x, (pos.y or self.pos.y)+40, false)
     guiSetPosition(self.menu.description_window, pos.x or self.pos.x, pos.y or self.pos.y, false)
     
     ElementDataDebug.computeMenuCoordinates(self.menu.window)
@@ -175,20 +178,19 @@ end
 
 function ElementDataDebug:fillMenu(data)
     self.data = data
-    for i=1, #self.data do
-        
-    end
-    
     for k, v in pairs(self.data) do
+        local item
         if type(v) ~= "table" then
             if v ~= self:previous_getDataValueFromKey(k) then
-                self:addItem(self.menu, k, v, { 255, 0, 0 })
+                item = self:addItem(self.menu, k, v, { 255, 0, 0 })
             else
-                self:addItem(self.menu, k, v)
+                item = self:addItem(self.menu, k, v)
             end
         else
-            self:addItem(self.menu, k, v)
+            item = self:addItem(self.menu, k, v)
         end
+        setElementData(item, "key", k)
+        setElementData(item, "value", v)
     end
 end
 
@@ -320,9 +322,9 @@ function ElementDataDebug:moveMenu()
     if isCursorShowing() and ElementDataDebug.moving_element.description_window and ElementDataDebug.moving_element.window and isElement(ElementDataDebug.moving_element.description_window) and isElement(ElementDataDebug.moving_element.window) then
         local sx, sy = getCursorPosition()
         local x, y = sx * screen[1], sy * screen[2]
-        local padding_x = settings.menuSize.w * scaledValue / 2
-        local padding_y = -40 * scaledValue / 2
-        local padding_y_description = 40 * scaledValue / 2
+        local padding_x = settings.menuSize.w / 2
+        local padding_y = -40 / 2
+        local padding_y_description = 40 / 2
         guiSetPosition(ElementDataDebug.moving_element.description_window, x - padding_x, y - padding_y_description, false)
         guiSetPosition(ElementDataDebug.moving_element.window,             x - padding_x, y - padding_y , false)
     
@@ -333,7 +335,7 @@ end
 -- when scrolling down or up the menu should move up or down
 function ElementDataDebug:onMenuScroll(upOrDown)
     if self.menu.window and isElement(self.menu.window) then
-        local row_space = 20 * scaledValue
+        local row_space = 20
         -- we gonna start from the first row, re-position all children
         local children = getElementChildren(self.menu.window)
         local _, y = guiGetPosition(children[1], false)
@@ -410,20 +412,41 @@ addEventHandler("onClientDoubleClick", root,
         end
     end)
 --local test = ElementDataDebug:create(localPlayer)
-function isMouseOnGuiElement(guiElement, guiElementParent)
-    if isCursorShowing() and isElement(guiElement) then
-        local sx, sy = guiGetScreenSize()
-        local x, y = getCursorPosition()
-        local wx, wy = 0, 0
-        x, y = x * sx, y * sy
-        if guiElementParent and isElement(guiElementParent) then
-            wx, wy = guiGetPosition(guiElementParent, false)
+
+
+local debug_interiors = true
+addCommandHandler("debug_interiors", function()
+    debug_interiors = not debug_interiors
+end)
+-- INTERIORS DEBUG
+-- FOR OWLGAMING Gamemode only.
+addEventHandler("onClientRender", root, function ()
+    if not debug_interiors then return end
+    local onMouseClick = isCursorShowing() and getKeyState("mouse1") or false
+    local pos = Vector3(getElementPosition(localPlayer))
+    local int = getElementInterior(localPlayer)
+    local dim = getElementDimension(localPlayer)
+    for i, intElement in ipairs(getElementsByType("interior")) do
+        local entrance = getElementData(intElement, "entrance")
+        if entrance then
+            local distance = 20
+            local distanceBetweenPoints = getDistanceBetweenPoints3D(pos.x, pos.y, pos.z, entrance.x,entrance.y,entrance.z)
+            if distanceBetweenPoints <= distance then
+                local heightOffset = 1
+                local px,py,pz = getScreenFromWorldPosition(entrance.x,entrance.y,entrance.z+heightOffset,0.05)
+                if px and py then
+                    if isMouseInPosition(px, py, 100, 50) then
+                        dxDrawTextOnRectangle("DEBUG Element Data ", px, py, 100, 50, "arial", "center", "center", tocolor(0,0,0,50), false)
+                        if onMouseClick then
+                            ElementDataDebug:create(intElement, px, py)
+                        end
+                    else
+                        dxDrawTextOnRectangle("DEBUG Element Data ", px, py, 100, 50, "arial", "center", "center", tocolor(0,0,0,100), false)
+                    end
+                end
+
+            end
+        
         end
-        local bx, by = guiGetPosition(guiElement, false)
-        local ex, ey = guiGetSize(guiElement, false)
-        if x >= wx + bx and x <= wx + bx + ex and y >= wy + by and y <= wy + by + ey then
-            return true
-        end
-        return false
     end
-end
+end)
