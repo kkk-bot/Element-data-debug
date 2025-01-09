@@ -1,3 +1,4 @@
+local screen = {guiGetScreenSize()}
 function isMouseInPosition(x, y, width, height, ...)
 	if not isCursorShowing() then
 		return false
